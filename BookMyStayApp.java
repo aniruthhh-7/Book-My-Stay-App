@@ -1,23 +1,27 @@
 import java.util.*;
 
-public class BookMyStayApp {
+public class BookMyStay {
 
     public static void main(String[] args) {
 
-        System.out.println("Room Allocation Processing");
-
         RoomInventory inventory = new RoomInventory();
-        RoomAllocationService service = new RoomAllocationService();
+        RoomAllocationService allocator = new RoomAllocationService();
 
-        Queue<Reservation> queue = new LinkedList<>();
+        Queue<Reservation> reservationQueue = new LinkedList<>();
 
-        queue.add(new Reservation("Abhi", "Single"));
-        queue.add(new Reservation("Subha", "Single"));
-        queue.add(new Reservation("Vannathi", "Suite"));
+        reservationQueue.add(new Reservation("Alice", "Single"));
+        reservationQueue.add(new Reservation("Bob", "Double"));
+        reservationQueue.add(new Reservation("Charlie", "Single"));
+        reservationQueue.add(new Reservation("David", "Suite"));
 
-        while (!queue.isEmpty()) {
-            service.allocateRoom(queue.poll(), inventory);
+        inventory.displayInventory();
+
+        while (!reservationQueue.isEmpty()) {
+            Reservation reservation = reservationQueue.poll();
+            allocator.allocateRoom(reservation, inventory);
         }
+
+        inventory.displayInventory();
     }
 }
 
@@ -35,42 +39,74 @@ class RoomAllocationService {
 
         String roomType = reservation.getRoomType();
 
-        if (inventory.isRoomAvailable(roomType)) {
-
-            String roomId = generateRoomId(roomType);
-
-            allocatedRoomIds.add(roomId);
-
-            assignedRoomsByType
-                    .computeIfAbsent(roomType, k -> new HashSet<>())
-                    .add(roomId);
-
-            inventory.decreaseRoom(roomType);
-
-            System.out.println("Booking confirmed for Guest: "
-                    + reservation.getGuestName()
-                    + ", Room ID: " + roomId);
-
-        } else {
-            System.out.println("No rooms available for Guest: "
-                    + reservation.getGuestName());
+        if (!inventory.isAvailable(roomType)) {
+            System.out.println("No rooms available for type: " + roomType);
+            return;
         }
+
+        String roomId = generateRoomId(roomType);
+
+        allocatedRoomIds.add(roomId);
+
+        assignedRoomsByType
+                .computeIfAbsent(roomType, k -> new HashSet<>())
+                .add(roomId);
+
+        inventory.bookRoom(roomType);
+
+        reservation.setRoomId(roomId);
+
+        System.out.println("Room allocated successfully!");
+        System.out.println("Guest: " + reservation.getGuestName());
+        System.out.println("Room Type: " + roomType);
+        System.out.println("Room ID: " + roomId);
+        System.out.println();
     }
 
     private String generateRoomId(String roomType) {
 
-        int count = assignedRoomsByType
-                .getOrDefault(roomType, new HashSet<>())
-                .size() + 1;
+        int number = 1;
+        String roomId;
 
-        String roomId = roomType + "-" + count;
-
-        while (allocatedRoomIds.contains(roomId)) {
-            count++;
-            roomId = roomType + "-" + count;
-        }
+        do {
+            roomId = roomType.substring(0,2).toUpperCase() + "-" + number;
+            number++;
+        } while (allocatedRoomIds.contains(roomId));
 
         return roomId;
+    }
+}
+
+class RoomInventory {
+
+    private Map<String, Integer> inventory;
+
+    public RoomInventory() {
+
+        inventory = new HashMap<>();
+
+        inventory.put("Single", 2);
+        inventory.put("Double", 2);
+        inventory.put("Suite", 1);
+    }
+
+    public boolean isAvailable(String roomType) {
+        return inventory.getOrDefault(roomType, 0) > 0;
+    }
+
+    public void bookRoom(String roomType) {
+        inventory.put(roomType, inventory.get(roomType) - 1);
+    }
+
+    public void displayInventory() {
+
+        System.out.println("Current Room Inventory:");
+
+        for (String type : inventory.keySet()) {
+            System.out.println(type + " : " + inventory.get(type));
+        }
+
+        System.out.println();
     }
 }
 
@@ -78,6 +114,7 @@ class Reservation {
 
     private String guestName;
     private String roomType;
+    private String roomId;
 
     public Reservation(String guestName, String roomType) {
         this.guestName = guestName;
@@ -91,23 +128,12 @@ class Reservation {
     public String getRoomType() {
         return roomType;
     }
-}
 
-class RoomInventory {
-
-    private Map<String, Integer> inventory;
-
-    public RoomInventory() {
-        inventory = new HashMap<>();
-        inventory.put("Single", 2);
-        inventory.put("Suite", 1);
+    public String getRoomId() {
+        return roomId;
     }
 
-    public boolean isRoomAvailable(String roomType) {
-        return inventory.getOrDefault(roomType, 0) > 0;
-    }
-
-    public void decreaseRoom(String roomType) {
-        inventory.put(roomType, inventory.get(roomType) - 1);
+    public void setRoomId(String roomId) {
+        this.roomId = roomId;
     }
 }
