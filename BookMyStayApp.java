@@ -32,6 +32,9 @@ class CancellationService {
         releasedRoomIds = new Stack<>();
         reservationRoomTypeMap = new HashMap<>();
     }
+}
+
+class RoomInventory {
 
     public void registerBooking(String reservationId, String roomType) {
         reservationRoomTypeMap.put(reservationId, roomType);
